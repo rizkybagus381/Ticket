@@ -3,94 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Pemesanan Tiket</title>
-    <!-- Menggunakan Tailwind CSS untuk styling yang cepat dan modern -->
+    <title>Dashboard Admin Tiket</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Animasi Shake untuk PIN Salah */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        .shake-animation { animation: shake 0.4s ease-in-out; }
+        
+        /* Menyembunyikan panah pada input number */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none; margin: 0;
+        }
+    </style>
 </head>
-<body class="bg-gray-50 min-h-screen text-gray-800 font-sans p-4 md:p-8">
+<body class="bg-gray-50 min-h-screen text-gray-800 font-sans relative">
 
-    <div class="max-w-4xl mx-auto">
-        <header class="text-center mb-10">
-            <h1 class="text-3xl md:text-4xl font-bold text-blue-600 mb-2">Sistem Pemesanan Tiket</h1>
-            <p class="text-gray-500">Pesan tiketmu sekarang dan data akan tersimpan langsung ke Firebase!</p>
+    <!-- Tempat Notifikasi -->
+    <div id="notifikasi" class="hidden fixed top-6 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-full text-white font-medium shadow-lg transition-all duration-300 opacity-0 -translate-y-4">
+    </div>
+
+    <!-- 1. HALAMAN LOGIN PIN (Lock Screen) -->
+    <div id="login-screen" class="fixed inset-0 bg-slate-900 z-40 flex items-center justify-center p-4 transition-opacity duration-500">
+        <div class="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-sm text-center">
+            <div class="bg-blue-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Area Admin</h2>
+            <p class="text-gray-500 mb-8 text-sm">Masukkan 6 digit PIN rahasia Anda.</p>
+            
+            <form id="form-pin">
+                <input type="password" id="input-pin" inputmode="numeric" maxlength="6" pattern="[0-9]*" required placeholder="••••••" 
+                    class="w-full text-center text-3xl tracking-[1em] px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-0 focus:border-blue-500 outline-none transition-colors font-mono mb-6">
+                
+                <button type="submit" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-colors">
+                    Buka Dashboard
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. HALAMAN DASHBOARD ADMIN (Awalnya Disembunyikan) -->
+    <div id="dashboard-screen" class="hidden max-w-5xl mx-auto p-4 md:p-8">
+        
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">Manajemen Pesanan</h1>
+                <p class="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    Live Data Firebase
+                </p>
+            </div>
+            <button id="btn-logout" class="bg-red-50 text-red-600 hover:bg-red-100 font-semibold py-2 px-5 rounded-lg transition-colors flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                Keluar
+            </button>
         </header>
 
-        <!-- Tempat untuk menampilkan pesan sukses/error -->
-        <div id="notifikasi" class="hidden mb-6 p-4 rounded-lg text-white font-medium text-center transition-all duration-300">
+        <!-- Kartu Statistik -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-md">
+                <h3 class="text-blue-100 text-sm font-medium mb-1">Total Tiket Terjual</h3>
+                <div class="text-4xl font-bold" id="stat-tiket">0</div>
+            </div>
+            <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-md">
+                <h3 class="text-green-100 text-sm font-medium mb-1">Estimasi Pendapatan</h3>
+                <div class="text-4xl font-bold" id="stat-uang">Rp 0</div>
+            </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Daftar Pesanan -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-6 border-b border-gray-100">
+                <h2 class="text-lg font-bold text-gray-800">Riwayat Pesanan Terbaru</h2>
+            </div>
             
-            <!-- Bagian Kiri: Formulir Pemesanan -->
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <h2 class="text-xl font-semibold mb-6 border-b pb-2">Form Formulir Baru</h2>
-                
-                <form id="form-pemesanan" class="space-y-4">
-                    <div>
-                        <label for="nama" class="block text-sm font-medium text-gray-700 mb-1">Nama Pemesan</label>
-                        <input type="text" id="nama" required placeholder="Masukkan nama lengkap" 
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
-                    </div>
-                    
-                    <div>
-                        <label for="jenis" class="block text-sm font-medium text-gray-700 mb-1">Jenis Tiket</label>
-                        <select id="jenis" required 
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-all">
-                            <option value="Reguler">Reguler</option>
-                            <option value="VIP">VIP</option>
-                            <option value="VVIP">VVIP</option>
-                        </select>
-                    </div>
-                    
-                    <div>
-                        <label for="jumlah" class="block text-sm font-medium text-gray-700 mb-1">Jumlah Tiket</label>
-                        <input type="number" id="jumlah" required min="1" value="1" 
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
-                    </div>
-                    
-                    <button type="submit" id="btn-submit"
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition-colors duration-200 mt-4">
-                        Pesan Sekarang
-                    </button>
-                </form>
+            <div id="daftar-tiket" class="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
+                <!-- Data akan dirender di sini -->
             </div>
-
-            <!-- Bagian Kanan: Daftar Pesanan (Real-time) -->
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <div class="flex justify-between items-center border-b pb-2 mb-4">
-                    <h2 class="text-xl font-semibold">Daftar Pesanan</h2>
-                    <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium">Real-time</span>
-                </div>
-                
-                <div id="daftar-tiket" class="space-y-3 overflow-y-auto max-h-[400px] pr-2">
-                    <div class="flex justify-center items-center py-8 text-gray-400">
-                        <svg class="animate-spin h-6 w-6 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <circle cx="12" cy="12" r="10" stroke-width="4" stroke-opacity="0.25"></circle>
-                            <path d="M12 2a10 10 0 0 1 10 10" stroke-width="4" stroke-linecap="round"></path>
-                        </svg>
-                        Memuat data dari Firebase...
-                    </div>
-                </div>
-            </div>
-
         </div>
+
     </div>
 
     <!-- Script Firebase & Logika Aplikasi -->
     <script type="module">
-        // 1. Import layanan Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { 
-            getFirestore, 
-            collection, 
-            addDoc, 
-            onSnapshot, 
-            serverTimestamp,
-            query,
-            orderBy 
-        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, query, orderBy, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // 2. Konfigurasi Firebase milikmu
+        // ==========================================
+        // PENGATURAN PIN ADMIN (GANTI PIN DI SINI)
+        // ==========================================
+        const PIN_RAHASIA = "123456"; 
+        
+        // Konfigurasi Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBPzVaOwVo7Vny6Zd1Hfuyn21neRAH5GQs",
             authDomain: "absen-fa8b4.firebaseapp.com",
@@ -101,124 +112,160 @@
             measurementId: "G-M8P1JXK4XZ"
         };
 
-        // 3. Inisialisasi Firebase & Firestore
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-
-        // 4. Referensi Elemen DOM
-        const formPemesanan = document.getElementById('form-pemesanan');
-        const daftarTiket = document.getElementById('daftar-tiket');
-        const notifikasi = document.getElementById('notifikasi');
-        const btnSubmit = document.getElementById('btn-submit');
-
-        // Referensi ke koleksi "pesanan_tiket"
         const tiketCollection = collection(db, "pesanan_tiket");
-        // Membuat query untuk mengurutkan data terbaru di atas
         const tiketQuery = query(tiketCollection, orderBy("waktuPesan", "desc"));
+        let unsubscribeSnapshot = null;
 
-        // Fungsi pembantu untuk menampilkan pesan (menggantikan alert)
+        // Referensi DOM
+        const loginScreen = document.getElementById('login-screen');
+        const dashboardScreen = document.getElementById('dashboard-screen');
+        const formPin = document.getElementById('form-pin');
+        const inputPin = document.getElementById('input-pin');
+        const notifikasi = document.getElementById('notifikasi');
+        const daftarTiket = document.getElementById('daftar-tiket');
+        const statTiket = document.getElementById('stat-tiket');
+        const statUang = document.getElementById('stat-uang');
+        const btnLogout = document.getElementById('btn-logout');
+
+        const formatRupiah = (angka) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+
+        // Fungsi Notifikasi
         function tampilkanPesan(pesan, tipe = 'sukses') {
             notifikasi.textContent = pesan;
-            notifikasi.classList.remove('hidden', 'bg-green-500', 'bg-red-500');
-            
-            if (tipe === 'sukses') {
-                notifikasi.classList.add('bg-green-500');
-            } else {
-                notifikasi.classList.add('bg-red-500');
-            }
-
-            // Sembunyikan otomatis setelah 3 detik
+            notifikasi.className = `fixed top-6 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-full text-white font-medium shadow-lg transition-all duration-300 ${tipe === 'sukses' ? 'bg-green-500' : 'bg-red-500'} translate-y-0 opacity-100`;
             setTimeout(() => {
-                notifikasi.classList.add('hidden');
+                notifikasi.classList.replace('translate-y-0', '-translate-y-4');
+                notifikasi.classList.replace('opacity-100', 'opacity-0');
             }, 3000);
         }
 
-        // --- A. Logika Menyimpan Data (Menambah Tiket) ---
-        formPemesanan.addEventListener('submit', async (e) => {
-            e.preventDefault(); 
-            
-            // Ubah tombol jadi status loading
-            const originalText = btnSubmit.textContent;
-            btnSubmit.textContent = "Menyimpan...";
-            btnSubmit.disabled = true;
-            btnSubmit.classList.add('opacity-70');
+        // --- 1. LOGIKA LOGIN PIN ---
+        formPin.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const pinDimasukkan = inputPin.value;
 
-            const nama = document.getElementById('nama').value;
-            const jenis = document.getElementById('jenis').value;
-            const jumlah = document.getElementById('jumlah').value;
-
-            try {
-                // Simpan ke Firestore
-                await addDoc(tiketCollection, {
-                    nama: nama,
-                    jenis: jenis,
-                    jumlah: parseInt(jumlah),
-                    waktuPesan: serverTimestamp() 
-                });
-                
-                tampilkanPesan('✅ Tiket berhasil dipesan!');
-                formPemesanan.reset(); 
-            } catch (error) {
-                console.error("Error menambah tiket:", error);
-                tampilkanPesan('Gagal menyimpan ke Firebase. Cek console/rules database Anda.', 'error');
-            } finally {
-                // Kembalikan tombol ke keadaan semula
-                btnSubmit.textContent = originalText;
-                btnSubmit.disabled = false;
-                btnSubmit.classList.remove('opacity-70');
+            if (pinDimasukkan === PIN_RAHASIA) {
+                // Login Berhasil
+                inputPin.blur(); // Hilangkan keyboard di HP
+                loginScreen.classList.add('opacity-0');
+                setTimeout(() => {
+                    loginScreen.classList.add('hidden');
+                    dashboardScreen.classList.remove('hidden');
+                    loadDataAdmin(); // Baru mulai panggil Firebase setelah login
+                    tampilkanPesan('Berhasil masuk ke Dashboard!', 'sukses');
+                }, 500);
+            } else {
+                // Login Gagal
+                tampilkanPesan('PIN Salah!', 'error');
+                inputPin.value = '';
+                inputPin.classList.add('shake-animation', 'border-red-500');
+                setTimeout(() => inputPin.classList.remove('shake-animation', 'border-red-500'), 400);
             }
         });
 
-        // --- B. Logika Menampilkan Data secara Real-time ---
-        onSnapshot(tiketQuery, (snapshot) => {
-            daftarTiket.innerHTML = ''; // Bersihkan kontainer
+        // --- 2. LOGOUT ---
+        btnLogout.addEventListener('click', () => {
+            if (unsubscribeSnapshot) unsubscribeSnapshot(); // Hentikan koneksi Firebase
+            dashboardScreen.classList.add('hidden');
+            loginScreen.classList.remove('hidden', 'opacity-0');
+            inputPin.value = '';
             
-            if (snapshot.empty) {
-                daftarTiket.innerHTML = `
-                    <div class="text-center py-6 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                        Belum ada pesanan tiket saat ini.
-                    </div>`;
-                return;
-            }
+            // Reset statistik
+            statTiket.textContent = '0';
+            statUang.textContent = 'Rp 0';
+            daftarTiket.innerHTML = '';
+            
+            tampilkanPesan('Anda telah keluar.', 'sukses');
+        });
 
-            snapshot.forEach((doc) => {
-                const data = doc.data();
-                
-                // Format tanggal (handling jika serverTimestamp belum masuk)
-                let waktuText = "Baru saja";
-                if (data.waktuPesan) {
-                    const date = data.waktuPesan.toDate();
-                    waktuText = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+        // --- 3. AMBIL DATA DARI FIREBASE ---
+        function loadDataAdmin() {
+            unsubscribeSnapshot = onSnapshot(tiketQuery, (snapshot) => {
+                daftarTiket.innerHTML = ''; 
+                let totalTiketHitung = 0;
+                let totalUangHitung = 0;
+
+                if (snapshot.empty) {
+                    daftarTiket.innerHTML = `<div class="text-center py-10 text-gray-400">Belum ada pesanan masuk.</div>`;
+                    statTiket.textContent = '0';
+                    statUang.textContent = 'Rp 0';
+                    return;
                 }
 
-                // Tentukan warna badge berdasarkan jenis tiket
-                let badgeColor = "bg-gray-200 text-gray-800";
-                if (data.jenis === "VIP") badgeColor = "bg-purple-100 text-purple-800";
-                if (data.jenis === "VVIP") badgeColor = "bg-yellow-100 text-yellow-800";
-                if (data.jenis === "Reguler") badgeColor = "bg-blue-100 text-blue-800";
+                snapshot.forEach((dokumen) => {
+                    const data = dokumen.data();
+                    
+                    // Hitung Statistik
+                    totalTiketHitung += data.jumlah || 0;
+                    totalUangHitung += data.totalHarga || 0;
 
-                // Buat elemen card untuk setiap pesanan
-                const item = document.createElement('div');
-                item.className = 'bg-gray-50 p-4 rounded-xl border border-gray-200 hover:shadow-md transition-shadow';
-                item.innerHTML = `
-                    <div class="flex justify-between items-start mb-2">
-                        <strong class="text-lg text-gray-800 truncate pr-2">${data.nama}</strong>
-                        <span class="text-xs text-gray-400 whitespace-nowrap">${waktuText}</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="${badgeColor} text-xs px-2.5 py-1 rounded-md font-semibold">${data.jenis}</span>
-                        <span class="text-sm font-medium text-gray-600">${data.jumlah} Tiket</span>
-                    </div>
-                `;
-                
-                daftarTiket.appendChild(item);
+                    let waktuText = "Baru saja";
+                    if (data.waktuPesan) {
+                        const date = data.waktuPesan.toDate();
+                        waktuText = date.toLocaleDateString('id-ID', { day:'numeric', month:'short' }) + ' • ' + date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+                    }
+
+                    let badgeColor = data.jenis === "VIP" ? "bg-purple-100 text-purple-700" : (data.jenis === "VVIP" ? "bg-yellow-100 text-yellow-700" : "bg-blue-100 text-blue-700");
+
+                    const item = document.createElement('div');
+                    item.className = 'p-6 hover:bg-gray-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4';
+                    item.innerHTML = `
+                        <div class="flex items-start gap-4">
+                            <div class="bg-gray-100 w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 text-gray-500">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-gray-800 text-lg">${data.nama}</h3>
+                                <p class="text-sm text-gray-500 mb-2">${data.email || 'Tidak ada email'}</p>
+                                <div class="flex items-center gap-2 text-xs">
+                                    <span class="${badgeColor} px-2 py-1 rounded font-bold">${data.jenis}</span>
+                                    <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded font-medium">${data.jumlah} Tiket</span>
+                                    <span class="text-gray-400 ml-1 flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                        ${waktuText}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 mt-2 sm:mt-0 border-t sm:border-t-0 pt-4 sm:pt-0">
+                            <div class="text-xl font-bold text-gray-800">${formatRupiah(data.totalHarga || 0)}</div>
+                            <button class="btn-hapus text-sm text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors border border-transparent hover:border-red-200" data-id="${dokumen.id}">
+                                Hapus Data
+                            </button>
+                        </div>
+                    `;
+                    daftarTiket.appendChild(item);
+                });
+
+                // Update UI Statistik
+                statTiket.textContent = totalTiketHitung;
+                statUang.textContent = formatRupiah(totalUangHitung);
             });
-        }, (error) => {
-            console.error("Error mengambil data real-time: ", error);
-            daftarTiket.innerHTML = `
-                <div class="text-center py-6 text-red-500 bg-red-50 rounded-lg border border-dashed border-red-300">
-                    Gagal membaca data. Pastikan Firestore Rules Anda diizinkan untuk dibaca (Read).
-                </div>`;
+        }
+
+        // --- 4. HAPUS PESANAN ---
+        daftarTiket.addEventListener('click', async (e) => {
+            const btnHapus = e.target.closest('.btn-hapus');
+            if (btnHapus) {
+                // Tampilkan konfirmasi kustom (bisa diganti modal jika mau, ini pakai confirm bawaan browser)
+                const isConfirmed = window.confirm("Apakah Anda yakin ingin menghapus data pesanan ini secara permanen?");
+                
+                if (isConfirmed) {
+                    btnHapus.textContent = 'Menghapus...';
+                    btnHapus.disabled = true;
+                    try {
+                        await deleteDoc(doc(db, "pesanan_tiket", btnHapus.dataset.id));
+                        tampilkanPesan('Pesanan berhasil dihapus.', 'sukses');
+                    } catch (error) {
+                        console.error("Gagal menghapus:", error);
+                        tampilkanPesan('Gagal menghapus pesanan.', 'error');
+                        btnHapus.textContent = 'Hapus Data';
+                        btnHapus.disabled = false;
+                    }
+                }
+            }
         });
     </script>
 </body>
